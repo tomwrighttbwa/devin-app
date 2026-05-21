@@ -178,14 +178,14 @@ export function calculateSodium(
     recommendation =
       'Sodium supplementation generally not needed for sessions under 60 minutes unless in extreme heat.';
   } else if (adjustedPerHour < 400) {
-    recommendation =
-      'Light sodium needs. Consider electrolyte drinks or small salt additions to foods.';
+    const perHourGrams = adjustedPerHour / 1000;
+    recommendation = `Light sodium needs: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Electrolyte drink sufficient.`;
   } else if (adjustedPerHour < 600) {
-    recommendation =
-      'Moderate sodium needs. Use electrolyte tablets or sports drinks with 300-500mg sodium per serving.';
+    const perHourGrams = adjustedPerHour / 1000;
+    recommendation = `Moderate sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Use electrolyte tablets or add salt to food.`;
   } else {
-    recommendation =
-      'High sodium needs due to conditions. Consider 500-1000mg sodium per hour from multiple sources.';
+    const perHourGrams = adjustedPerHour / 1000;
+    recommendation = `High sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Consider multiple electrolyte sources.`;
   }
 
   return {
