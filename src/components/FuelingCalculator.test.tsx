@@ -39,9 +39,9 @@ describe('FuelingCalculator', () => {
     render(<FuelingCalculator />);
 
     const intensitySelect = screen.getByLabelText(/Training Intensity/i);
-    await user.selectOptions(intensitySelect, 'high');
+    await user.selectOptions(intensitySelect, 'tempo');
 
-    expect(intensitySelect).toHaveValue('high');
+    expect(intensitySelect).toHaveValue('tempo');
   });
 
   it('should show weather inputs when weather toggle is enabled', async () => {
@@ -55,7 +55,7 @@ describe('FuelingCalculator', () => {
     expect(screen.getByLabelText(/Use demo mode/i)).toBeInTheDocument();
   });
 
-  it('should show API key input when demo mode is disabled', async () => {
+  it('should not show API key input when demo mode is disabled', async () => {
     const user = userEvent.setup();
     render(<FuelingCalculator />);
 
@@ -65,7 +65,8 @@ describe('FuelingCalculator', () => {
     const demoToggle = screen.getByLabelText(/Use demo mode/i);
     await user.click(demoToggle);
 
-    expect(screen.getByLabelText(/OpenWeatherMap API Key/i)).toBeInTheDocument();
+    // API key input should not be visible since it's handled by environment variable
+    expect(screen.queryByLabelText(/OpenWeatherMap API Key/i)).not.toBeInTheDocument();
   });
 
   it('should calculate and display results', async () => {
@@ -74,11 +75,15 @@ describe('FuelingCalculator', () => {
         total: 90,
         perHour: 45,
         recommendation: 'Test recommendation',
+        includeRecommendation: true,
       },
       sodium: {
         total: 800,
+        totalGrams: 2.0,
         perHour: 400,
+        perHourGrams: 1.0,
         recommendation: 'Test recommendation',
+        includeRecommendation: true,
       },
       water: {
         total: 1200,

@@ -11,7 +11,7 @@ import WeatherInput from './WeatherInput';
 
 const FuelingCalculator = () => {
   const [duration, setDuration] = useState<number>(60);
-  const [intensity, setIntensity] = useState<TrainingInput['intensity']>('moderate');
+  const [intensity, setIntensity] = useState<TrainingInput['intensity']>('endurance');
   const [useWeather, setUseWeather] = useState<boolean>(false);
   const [location, setLocation] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
@@ -19,6 +19,7 @@ const FuelingCalculator = () => {
   const [error, setError] = useState<string>('');
   const [result, setResult] = useState<FuelingResult | null>(null);
   const [useMockWeather, setUseMockWeather] = useState<boolean>(true); // For demo purposes
+  const showApiKeyInput = false; // Hide API key input by default
 
   const handleCalculate = async () => {
     setError('');
@@ -82,10 +83,12 @@ const FuelingCalculator = () => {
             onChange={(e) => setIntensity(e.target.value as TrainingInput['intensity'])}
             className="form-select"
           >
-            <option value="low">Low (conversation pace)</option>
-            <option value="moderate">Moderate (comfortable hard)</option>
-            <option value="high">High (threshold/tempo)</option>
+            <option value="easy">Easy (Zone 1-2: Recovery)</option>
+            <option value="endurance">Endurance (Zone 2-3: Comfortable pace)</option>
+            <option value="tempo">Tempo (Zone 4: Threshold)</option>
+            <option value="high">High (Zone 5: Intervals/VO2 max)</option>
           </select>
+          <p className="form-hint">Most endurance training is done in Zone 2-3. Zone 4-5 sessions are typically shorter.</p>
         </div>
 
         <div className="form-group">
@@ -108,6 +111,7 @@ const FuelingCalculator = () => {
             setApiKey={setApiKey}
             useMockWeather={useMockWeather}
             setUseMockWeather={setUseMockWeather}
+            showApiKeyInput={showApiKeyInput}
           />
         )}
 

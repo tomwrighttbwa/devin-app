@@ -1,6 +1,6 @@
 export interface TrainingInput {
   duration: number; // in minutes
-  intensity: 'low' | 'moderate' | 'high';
+  intensity: 'easy' | 'endurance' | 'tempo' | 'high';
 }
 
 export interface WeatherData {
@@ -13,11 +13,15 @@ export interface FuelingResult {
     total: number; // in grams
     perHour: number; // in grams
     recommendation: string;
+    includeRecommendation: boolean; // Whether to show carb recommendations
   };
   sodium: {
     total: number; // in milligrams
+    totalGrams: number; // in grams (for salt measurement)
     perHour: number; // in milligrams
+    perHourGrams: number; // in grams (for salt measurement)
     recommendation: string;
+    includeRecommendation: boolean; // Whether to show sodium recommendations
   };
   water: {
     total: number; // in milliliters
@@ -81,7 +85,7 @@ export function calculateWeatherAdjustment(weather: WeatherData): {
 
 /**
  * Calculate carbohydrate needs based on training duration and intensity
- * Based on ISSN Position Stand: Nutrient Timing (2017) and ACSM guidelines
+ * Duration-based approach with intensity as secondary modifier
  */
 export function calculateCarbs(
   duration: number,
@@ -91,55 +95,77 @@ export function calculateCarbs(
   total: number;
   perHour: number;
   recommendation: string;
+  includeRecommendation: boolean;
 } {
   const hours = duration / 60;
+  let includeRecommendation = true;
 
-  // Base carbohydrate needs per hour based on intensity (in grams)
-  // ISSN guidelines: 30-60g/hour for moderate, up to 90g/hour for high intensity
+  // Duration-based recommendations (primary factor)
   let basePerHour: number;
+  if (duration < 60) {
+    basePerHour = 0;
+    includeRecommendation = false; // No carb recommendations for short sessions
+  } else if (duration < 90) {
+    basePerHour = 30; // 30g/hour for 60-90 min sessions
+  } else if (duration < 120) {
+    basePerHour = 45; // 45g/hour for 90-120 min sessions
+  } else {
+    basePerHour = 60; // 60g/hour for 120+ min sessions
+  }
+
+  // Intensity modifiers (secondary factor)
+  let intensityModifier = 1.0;
   switch (intensity) {
-    case 'low':
-      basePerHour = 30;
+    case 'easy': // Zone 1-2: Recovery, conversation pace
+      intensityModifier = 0.9;
       break;
-    case 'moderate':
-      basePerHour = 45;
+    case 'endurance': // Zone 2-3: Comfortable working pace
+      intensityModifier = 1.0;
       break;
-    case 'high':
-      basePerHour = 60;
+    case 'tempo': // Zone 4: Threshold work
+      intensityModifier = 1.2;
+      break;
+    case 'high': // Zone 5: VO2 max/intervals
+      intensityModifier = 1.4;
       break;
   }
 
-  // Apply weather adjustment (carbs needs increase slightly in heat due to increased glycogen utilization)
-  const adjustedPerHour = basePerHour * (1 + (weatherFactor - 1) * 0.3);
+  // Apply intensity modifier
+  let adjustedPerHour = basePerHour * intensityModifier;
+
+  // Apply weather adjustment (carbs needs increase slightly in heat)
+  if (duration >= 60) {
+    adjustedPerHour = adjustedPerHour * (1 + (weatherFactor - 1) * 0.2);
+  }
+
+  // Cap at reasonable maximum
+  adjustedPerHour = Math.min(adjustedPerHour, 90);
 
   // Total carbs for the session
   const total = adjustedPerHour * hours;
 
   let recommendation = '';
   if (duration < 60) {
-    recommendation =
-      'Water is sufficient for sessions under 60 minutes. Focus on pre-training nutrition.';
+    recommendation = 'Water sufficient for sessions under 60 minutes. Focus on pre-training nutrition.';
   } else if (duration < 90) {
-    recommendation =
-      'Consume 30-45g of carbs per hour from sports drinks, gels, or easily digestible foods.';
-  } else if (duration < 150) {
-    recommendation =
-      'Aim for 45-60g of carbs per hour. Mix glucose and fructose sources for optimal absorption.';
+    recommendation = `Start fueling: ${Math.round(adjustedPerHour)}g carbs/hour. Use sports drinks, gels, or bananas.`;
+  } else if (duration < 120) {
+    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Mix glucose/fructose sources (e.g., gels + sports drink).`;
   } else {
-    recommendation =
-      'Target 60-90g of carbs per hour. Use multiple transportable carbs (glucose:fructose 2:1 ratio).';
+    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Use multiple transportable carbs for endurance events.`;
   }
 
   return {
     total: Math.round(total),
     perHour: Math.round(adjustedPerHour),
     recommendation,
+    includeRecommendation,
   };
 }
 
 /**
  * Calculate sodium needs based on training duration and weather conditions
- * Based on ACSM and ISSN position stands, accounting for individual sweat rate variability
+ * Duration-based approach with gram measurements for salt
  */
 export function calculateSodium(
   duration: number,
@@ -147,36 +173,69 @@ export function calculateSodium(
   weatherFactor: number = 1.0
 ): {
   total: number;
+  totalGrams: number;
   perHour: number;
+  perHourGrams: number;
   recommendation: string;
+  includeRecommendation: boolean;
 } {
   const hours = duration / 60;
+  let includeRecommendation = true;
 
-  // Base sodium needs per hour (in milligrams)
-  // Average sweat sodium concentration: 300-800mg/L, typical sweat rate: 0.5-1.5L/hour
+  // Convert sodium to salt: 1g salt ≈ 400mg sodium
+  const sodiumToSaltRatio = 0.0025; // mg to grams conversion
+
+  // Duration-based recommendations (primary factor)
   let basePerHour: number;
+  if (duration < 60) {
+    basePerHour = 0;
+    includeRecommendation = false; // No sodium recommendations for short sessions
+  } else if (duration < 90) {
+    basePerHour = 300; // 300mg/hour for 60-90 min sessions
+  } else if (duration < 120) {
+    basePerHour = 400; // 400mg/hour for 90-120 min sessions
+  } else {
+    basePerHour = 500; // 500mg/hour for 120+ min sessions
+  }
+
+  // Intensity modifiers (secondary factor)
+  let intensityModifier = 1.0;
   switch (intensity) {
-    case 'low':
-      basePerHour = 300;
+    case 'easy': // Zone 1-2: Recovery
+      intensityModifier = 0.9;
       break;
-    case 'moderate':
-      basePerHour = 400;
+    case 'endurance': // Zone 2-3: Comfortable working pace
+      intensityModifier = 1.0;
       break;
-    case 'high':
-      basePerHour = 500;
+    case 'tempo': // Zone 4: Threshold work
+      intensityModifier = 1.2;
+      break;
+    case 'high': // Zone 5: VO2 max/intervals
+      intensityModifier = 1.4;
       break;
   }
 
-  // Apply weather adjustment (sodium needs increase significantly in heat due to higher sweat rates)
-  const adjustedPerHour = basePerHour * weatherFactor;
+  // Apply intensity modifier
+  let adjustedPerHour = basePerHour * intensityModifier;
+
+  // Apply weather adjustment (sodium needs increase significantly in heat)
+  if (duration >= 60) {
+    adjustedPerHour = adjustedPerHour * weatherFactor;
+  }
+
+  // Cap at reasonable maximum
+  adjustedPerHour = Math.min(adjustedPerHour, 1200);
 
   // Total sodium for the session
   const total = adjustedPerHour * hours;
 
+  // Convert to grams for salt measurement
+  const totalGrams = total * sodiumToSaltRatio;
+  const perHourGrams = adjustedPerHour * sodiumToSaltRatio;
+
   let recommendation = '';
   if (duration < 60) {
-    recommendation =
-      'Sodium supplementation generally not needed for sessions under 60 minutes unless in extreme heat.';
+    recommendation = 'Sodium not needed for sessions under 60 minutes.';
   } else if (adjustedPerHour < 400) {
     const perHourGrams = adjustedPerHour / 1000;
     recommendation = `Light sodium needs: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Electrolyte drink sufficient.`;
@@ -190,14 +249,17 @@ export function calculateSodium(
 
   return {
     total: Math.round(total),
+    totalGrams: Math.round(totalGrams * 100) / 100,
     perHour: Math.round(adjustedPerHour),
+    perHourGrams: Math.round(perHourGrams * 100) / 100,
     recommendation,
+    includeRecommendation,
   };
 }
 
 /**
  * Calculate water needs based on training duration and weather conditions
- * Based on ACSM hydration guidelines and sweat rate research
+ * Duration-based approach with focus on hydration for short sessions
  */
 export function calculateWater(
   duration: number,
@@ -210,37 +272,56 @@ export function calculateWater(
 } {
   const hours = duration / 60;
 
-  // Base water needs per hour (in milliliters)
-  // ACSM recommends 400-800ml/hour during exercise, depending on sweat rate
+  // Duration-based recommendations (primary factor)
   let basePerHour: number;
+  if (duration < 60) {
+    basePerHour = 500; // Focus on water for short sessions
+  } else if (duration < 90) {
+    basePerHour = 600;
+  } else if (duration < 120) {
+    basePerHour = 700;
+  } else {
+    basePerHour = 800;
+  }
+
+  // Intensity modifiers (secondary factor)
+  let intensityModifier = 1.0;
   switch (intensity) {
-    case 'low':
-      basePerHour = 400;
+    case 'easy': // Zone 1-2: Recovery
+      intensityModifier = 0.9;
       break;
-    case 'moderate':
-      basePerHour = 600;
+    case 'endurance': // Zone 2-3: Comfortable working pace
+      intensityModifier = 1.0;
       break;
-    case 'high':
-      basePerHour = 800;
+    case 'tempo': // Zone 4: Threshold work
+      intensityModifier = 1.2;
+      break;
+    case 'high': // Zone 5: VO2 max/intervals
+      intensityModifier = 1.4;
       break;
   }
 
-  // Apply weather adjustment (water needs increase significantly in heat/humidity)
-  const adjustedPerHour = basePerHour * weatherFactor;
+  // Apply intensity modifier
+  let adjustedPerHour = basePerHour * intensityModifier;
+
+  // Apply weather adjustment (water needs increase significantly in heat)
+  adjustedPerHour = adjustedPerHour * weatherFactor;
+
+  // Cap at reasonable maximum
+  adjustedPerHour = Math.min(adjustedPerHour, 1500);
 
   // Total water for the session
   const total = adjustedPerHour * hours;
 
   let recommendation = '';
   if (duration < 60) {
-    recommendation = 'Drink to thirst. Pre-hydrate with 400-600ml 2-3 hours before exercise.';
-  } else if (adjustedPerHour < 500) {
-    recommendation = 'Drink 400-500ml per hour. Monitor urine color as a hydration indicator.';
-  } else if (adjustedPerHour < 700) {
-    recommendation = 'Aim for 500-700ml per hour. Set reminders to drink every 15-20 minutes.';
+    recommendation = `Focus on hydration: ${Math.round(total)}ml total. Drink to thirst, pre-hydrate with 400-600ml before exercise.`;
+  } else if (duration < 90) {
+    recommendation = `${Math.round(adjustedPerHour)}ml/hour. Set reminders to drink every 15-20 minutes.`;
+  } else if (duration < 120) {
+    recommendation = `${Math.round(adjustedPerHour)}ml/hour. Monitor urine color as hydration indicator.`;
   } else {
-    recommendation =
-      'High fluid needs due to conditions. Target 700-1000ml per hour. Consider cold fluids for better absorption.';
+    recommendation = `${Math.round(adjustedPerHour)}ml/hour. High fluid needs - consider cold fluids for better absorption.`;
   }
 
   return {
@@ -262,9 +343,21 @@ export function calculateFuelingNeeds(input: TrainingInput, weather?: WeatherDat
   const water = calculateWater(input.duration, input.intensity, weatherFactor);
 
   return {
-    carbs,
-    sodium,
-    water,
+    carbs: {
+      total: carbs.total,
+      perHour: carbs.perHour,
+      recommendation: carbs.recommendation,
+      includeRecommendation: carbs.includeRecommendation,
+    },
+    sodium: {
+      total: sodium.total,
+      totalGrams: sodium.totalGrams,
+      perHour: sodium.perHour,
+      perHourGrams: sodium.perHourGrams,
+      recommendation: sodium.recommendation,
+      includeRecommendation: sodium.includeRecommendation,
+    },
+    water: water,
     weatherAdjustment,
   };
 }
