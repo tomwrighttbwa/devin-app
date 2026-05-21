@@ -30,7 +30,9 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
               <span className="unit">g/hour</span>
             </div>
           </div>
-          <p className="result-recommendation">{result.carbs.recommendation}</p>
+          {result.carbs.includeRecommendation && (
+            <p className="result-recommendation">{result.carbs.recommendation}</p>
+          )}
         </div>
 
         <div className="result-card sodium">
@@ -39,14 +41,16 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
           <div className="result-values">
             <div className="result-total">
               <span className="value">{result.sodium.total}</span>
-              <span className="unit">mg total</span>
+              <span className="unit">mg total ({result.sodium.totalGrams}g salt)</span>
             </div>
             <div className="result-per-hour">
               <span className="value">{result.sodium.perHour}</span>
-              <span className="unit">mg/hour</span>
+              <span className="unit">mg/hour ({result.sodium.perHourGrams}g salt)</span>
             </div>
           </div>
-          <p className="result-recommendation">{result.sodium.recommendation}</p>
+          {result.sodium.includeRecommendation && (
+            <p className="result-recommendation">{result.sodium.recommendation}</p>
+          )}
         </div>
 
         <div className="result-card water">

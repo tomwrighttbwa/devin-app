@@ -39,9 +39,9 @@ describe('FuelingCalculator', () => {
     render(<FuelingCalculator />);
 
     const intensitySelect = screen.getByLabelText(/Training Intensity/i);
-    await user.selectOptions(intensitySelect, 'high');
+    await user.selectOptions(intensitySelect, 'tempo');
 
-    expect(intensitySelect).toHaveValue('high');
+    expect(intensitySelect).toHaveValue('tempo');
   });
 
   it('should show weather inputs when weather toggle is enabled', async () => {
@@ -75,11 +75,15 @@ describe('FuelingCalculator', () => {
         total: 90,
         perHour: 45,
         recommendation: 'Test recommendation',
+        includeRecommendation: true,
       },
       sodium: {
         total: 800,
+        totalGrams: 2.0,
         perHour: 400,
+        perHourGrams: 1.0,
         recommendation: 'Test recommendation',
+        includeRecommendation: true,
       },
       water: {
         total: 1200,
