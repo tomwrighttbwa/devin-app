@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
   pull_request:
     branches: [develop, main]
 
@@ -79,11 +79,8 @@ jobs:
       contents: read
       pages: write
       id-token: write
-    # Only deploy from main branch via PR, not direct push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'pull_request'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Only deploy from main branch after PR merge (prevents direct push deployment)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code

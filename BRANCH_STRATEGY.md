@@ -68,12 +68,13 @@ To enforce the workflow, configure these rules in GitHub Settings → Branches:
 ### Automatic Actions
 - **Lint & Test**: Runs on all branches
 - **Build**: Runs on all branches
-- **Deploy**: Only runs on PR merge to `main`
+- **Deploy**: Only runs on push to `main` (after PR merge)
 
 ### Deployment Conditions
-- Only deploys when PR to `main` is approved and merged
+- Deploys when code is pushed to `main` branch (after PR merge)
 - Requires all status checks to pass (lint, tests, build)
 - Uses official GitHub Pages deployment actions
+- Branch protection rules prevent direct pushes to main
 
 ## Important Notes
 
