@@ -1,6 +1,7 @@
 export interface TrainingInput {
   duration: number; // in minutes
-  intensity: 'low' | 'moderate' | 'high';
+  intensity: 'easy' | 'endurance' | 'tempo' | 'high';
+  athleteType: 'recreational' | 'elite';
 }
 
 export interface WeatherData {
@@ -13,11 +14,15 @@ export interface FuelingResult {
     total: number; // in grams
     perHour: number; // in grams
     recommendation: string;
+    includeRecommendation: boolean; // Whether to show carb recommendations
   };
   sodium: {
     total: number; // in milligrams
+    totalGrams: number; // in grams (for salt measurement)
     perHour: number; // in milligrams
+    perHourGrams: number; // in grams (for salt measurement)
     recommendation: string;
+    includeRecommendation: boolean; // Whether to show sodium recommendations
   };
   water: {
     total: number; // in milliliters
@@ -178,10 +183,13 @@ export function calculateSodium(
     recommendation =
       'Sodium supplementation generally not needed for sessions under 60 minutes unless in extreme heat.';
   } else if (adjustedPerHour < 400) {
+    const perHourGrams = adjustedPerHour / 1000;
     recommendation = `Light sodium needs: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Electrolyte drink sufficient.`;
   } else if (adjustedPerHour < 600) {
+    const perHourGrams = adjustedPerHour / 1000;
     recommendation = `Moderate sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Use electrolyte tablets or add salt to food.`;
   } else {
+    const perHourGrams = adjustedPerHour / 1000;
     recommendation = `High sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Consider multiple electrolyte sources.`;
   }
 

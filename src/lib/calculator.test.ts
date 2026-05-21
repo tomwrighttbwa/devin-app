@@ -137,7 +137,7 @@ describe('calculateSodium', () => {
   it('should provide appropriate recommendation for high sodium needs', () => {
     const result = calculateSodium(120, 'high', 1.5);
     expect(result.perHour).toBeGreaterThan(600);
-    expect(result.recommendation).toContain('High sodium needs');
+    expect(result.recommendation).toContain('High sodium');
   });
 });
 
