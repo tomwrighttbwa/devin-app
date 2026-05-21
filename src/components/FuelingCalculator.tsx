@@ -19,6 +19,7 @@ const FuelingCalculator = () => {
   const [error, setError] = useState<string>('');
   const [result, setResult] = useState<FuelingResult | null>(null);
   const [useMockWeather, setUseMockWeather] = useState<boolean>(true); // For demo purposes
+  const showApiKeyInput = false; // Hide API key input by default
 
   const handleCalculate = async () => {
     setError('');
@@ -108,6 +109,7 @@ const FuelingCalculator = () => {
             setApiKey={setApiKey}
             useMockWeather={useMockWeather}
             setUseMockWeather={setUseMockWeather}
+            showApiKeyInput={showApiKeyInput}
           />
         )}
 
