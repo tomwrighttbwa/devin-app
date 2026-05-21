@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
   pull_request:
-    branches: [main]
+    branches: [develop, main]
 
 jobs:
   lint-and-test:
@@ -77,6 +77,7 @@ jobs:
       contents: write
       pages: write
       id-token: write
+    # Only deploy from main branch, not from develop
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
