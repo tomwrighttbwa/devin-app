@@ -190,3 +190,4 @@ This calculator provides general recommendations based on established sports nut
 - Personal tolerance
 
 Always practice your fueling strategy in training before race day, and consult with a sports nutritionist for personalized advice.
+# Test deployment with API key integration

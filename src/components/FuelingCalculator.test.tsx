@@ -55,7 +55,7 @@ describe('FuelingCalculator', () => {
     expect(screen.getByLabelText(/Use demo mode/i)).toBeInTheDocument();
   });
 
-  it('should show API key input when demo mode is disabled', async () => {
+  it('should not show API key input when demo mode is disabled', async () => {
     const user = userEvent.setup();
     render(<FuelingCalculator />);
 
@@ -65,7 +65,8 @@ describe('FuelingCalculator', () => {
     const demoToggle = screen.getByLabelText(/Use demo mode/i);
     await user.click(demoToggle);
 
-    expect(screen.getByLabelText(/OpenWeatherMap API Key/i)).toBeInTheDocument();
+    // API key input should not be visible since it's handled by environment variable
+    expect(screen.queryByLabelText(/OpenWeatherMap API Key/i)).not.toBeInTheDocument();
   });
 
   it('should calculate and display results', async () => {
