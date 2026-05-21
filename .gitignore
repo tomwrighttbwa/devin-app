@@ -21,6 +21,9 @@ dist
 dist-ssr
 build
 
+# Vite cache
+.vite
+
 # Misc
 .DS_Store
 *.pem

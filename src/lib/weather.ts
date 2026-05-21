@@ -38,7 +38,7 @@ export async function fetchWeather(location: string, userApiKey?: string): Promi
 
   if (!apiKey) {
     throw new Error(
-      'No API key available. Please either set VITE_OPENWEATHER_API_KEY environment variable, configure a proxy server, or enter your API key in the app.'
+      'No API key available. Please contact the administrator to set up the OpenWeatherMap API key, or use demo mode.'
     );
   }
 
