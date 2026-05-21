@@ -1,7 +1,6 @@
 export interface TrainingInput {
   duration: number; // in minutes
-  intensity: 'easy' | 'endurance' | 'tempo' | 'high';
-  athleteType: 'recreational' | 'elite';
+  intensity: 'low' | 'moderate' | 'high';
 }
 
 export interface WeatherData {
@@ -14,15 +13,11 @@ export interface FuelingResult {
     total: number; // in grams
     perHour: number; // in grams
     recommendation: string;
-    includeRecommendation: boolean; // Whether to show carb recommendations
   };
   sodium: {
     total: number; // in milligrams
-    totalGrams: number; // in grams (for salt measurement)
     perHour: number; // in milligrams
-    perHourGrams: number; // in grams (for salt measurement)
     recommendation: string;
-    includeRecommendation: boolean; // Whether to show sodium recommendations
   };
   water: {
     total: number; // in milliliters
