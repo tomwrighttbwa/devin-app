@@ -148,9 +148,9 @@ export function calculateCarbs(
   if (duration < 60) {
     recommendation = 'Water sufficient for sessions under 60 minutes. Focus on pre-training nutrition.';
   } else if (duration < 90) {
-    recommendation = `Start fueling: ${Math.round(adjustedPerHour)}g carbs/hour. Use sports drinks, gels, or bananas.`;
+    recommendation = `Start fueling: ${Math.round(adjustedPerHour)}g carbs/hour. Use sugar, maple syrup, gels, or bananas.`;
   } else if (duration < 120) {
-    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Mix glucose/fructose sources (e.g., gels + sports drink).`;
+    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Mix glucose/fructose sources (e.g., sugar and maltodextrin).`;
   } else {
     recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Use multiple transportable carbs for endurance events.`;
   }
