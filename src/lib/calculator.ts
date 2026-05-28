@@ -112,10 +112,11 @@ function assessHeatRisk(heatIndexC: number): {
 /**
  * Calculate carbohydrate needs based on ACSM/ISSN evidence-based guidelines
  * Duration-based approach with established research backing
+ * Note: Intensity not used in evidence-based approach as ACSM/ISSN guidelines are duration-based
  */
 export function calculateCarbs(
   duration: number,
-  intensity: TrainingInput['intensity'],
+  _intensity: TrainingInput['intensity'], // Parameter kept for interface compatibility, not used in evidence-based approach
   heatRisk: 'low' | 'moderate' | 'high' | 'extreme'
 ): {
   total: number;
