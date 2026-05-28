@@ -29,7 +29,7 @@ const WeatherInput = ({
           />
           <span>Use demo mode (mock weather data)</span>
         </label>
-        <p className="form-hint">Uncheck to use real weather data</p>
+        <p className="form-hint">Real weather API used by default. Only use demo mode for testing without API key.</p>
       </div>
 
       <div className="form-group">
@@ -46,17 +46,17 @@ const WeatherInput = ({
 
       {!useMockWeather && showApiKeyInput && (
         <div className="form-group">
-          <label htmlFor="apiKey">OpenWeatherMap API Key (Optional)</label>
+          <label htmlFor="apiKey">OpenWeatherMap API Key</label>
           <input
             id="apiKey"
             type="text"
-            placeholder="Optional: Uses provided API key if blank"
+            placeholder="Enter your OpenWeatherMap API key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="form-input"
           />
           <p className="form-hint">
-            Optional - will use the provided API key if not entered
+            Required for real weather data. Get free API key from openweathermap.org
           </p>
         </div>
       )}

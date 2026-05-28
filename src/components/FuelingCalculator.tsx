@@ -18,7 +18,7 @@ const FuelingCalculator = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [result, setResult] = useState<FuelingResult | null>(null);
-  const [useMockWeather, setUseMockWeather] = useState<boolean>(true); // For demo purposes
+  const [useMockWeather, setUseMockWeather] = useState<boolean>(false); // Use real API by default
   const showApiKeyInput = false; // Hide API key input by default
 
   const handleCalculate = async () => {
@@ -37,13 +37,23 @@ const FuelingCalculator = () => {
         if (useMockWeather) {
           weatherData = getMockWeather(location);
         } else {
-          // API key is now optional - will use environment variable if not provided
-          weatherData = await fetchWeather(location, apiKey || undefined);
+          // Check if API key is available
+          const apiKeyToUse = apiKey || import.meta.env.VITE_OPENWEATHER_API_KEY;
+          
+          if (!apiKeyToUse) {
+            // Automatically switch to mock mode if no API key
+            setUseMockWeather(true);
+            weatherData = getMockWeather(location);
+            setError('No API key available. Using demo mode with mock weather data. Add your API key in environment variables for real weather.');
+          } else {
+            weatherData = await fetchWeather(location, apiKeyToUse);
+          }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
-        setLoading(false);
-        return;
+        // Fall back to mock mode on API failure
+        setUseMockWeather(true);
+        weatherData = getMockWeather(location);
+        setError(`Weather API unavailable: ${err instanceof Error ? err.message : 'Unknown error'}. Using demo mode instead.`);
       }
       setLoading(false);
     }
