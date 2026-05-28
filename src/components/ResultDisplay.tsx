@@ -5,14 +5,41 @@ interface ResultDisplayProps {
 }
 
 const ResultDisplay = ({ result }: ResultDisplayProps) => {
+  const getRiskLevelColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'extreme':
+        return '#dc2626'; // red
+      case 'high':
+        return '#f97316'; // orange
+      case 'moderate':
+        return '#eab308'; // yellow
+      default:
+        return '#22c55e'; // green
+    }
+  };
+
   return (
     <div className="result-section">
       <h2>Your Fueling Plan</h2>
 
-      {result.weatherAdjustment && (
-        <div className="weather-notice">
-          <strong>Weather Adjustment Applied:</strong> {result.weatherAdjustment.factor.toFixed(2)}x
-          factor - {result.weatherAdjustment.reason}
+      {result.weatherAssessment && result.weatherAssessment.warnings.length > 0 && (
+        <div
+          className="weather-notice"
+          style={{ borderColor: getRiskLevelColor(result.weatherAssessment.riskLevel) }}
+        >
+          <strong>⚠️ Heat Risk Assessment:</strong>{' '}
+          <span style={{ color: getRiskLevelColor(result.weatherAssessment.riskLevel) }}>
+            {result.weatherAssessment.riskLevel.toUpperCase()} RISK
+          </span>
+          <br />
+          <small>Heat Index: {result.weatherAssessment.heatIndex}°C</small>
+          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+            {result.weatherAssessment.warnings.map((warning, index) => (
+              <li key={index} style={{ fontSize: '14px' }}>
+                {warning}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -33,6 +60,9 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
           {result.carbs.includeRecommendation && (
             <p className="result-recommendation">{result.carbs.recommendation}</p>
           )}
+          <div className="science-notes">
+            <small>📚 {result.carbs.scienceNotes}</small>
+          </div>
         </div>
 
         <div className="result-card sodium">
@@ -51,6 +81,9 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
           {result.sodium.includeRecommendation && (
             <p className="result-recommendation">{result.sodium.recommendation}</p>
           )}
+          <div className="science-notes">
+            <small>📚 {result.sodium.scienceNotes}</small>
+          </div>
         </div>
 
         <div className="result-card water">
@@ -67,14 +100,20 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
             </div>
           </div>
           <p className="result-recommendation">{result.water.recommendation}</p>
+          <div className="science-notes">
+            <small>📚 {result.water.scienceNotes}</small>
+          </div>
         </div>
       </div>
 
       <div className="result-footer">
         <p className="disclaimer">
-          <strong>Note:</strong> These recommendations are based on general sports nutrition
-          guidelines. Individual needs vary based on sweat rate, body weight, and other factors.
-          Always practice your fueling strategy in training before race day.
+          <strong>⚠️ Important Safety Notice:</strong> These recommendations are based on
+          ACSM/ISSN sports nutrition guidelines. Individual nutritional needs vary
+          significantly based on sweat rate, sweat sodium concentration, body weight, and
+          other factors. For personalized recommendations, consult a sports dietitian or
+          consider individual sweat testing. Never exceed 800ml/hour fluid intake due to
+          hyponatremia risk.
         </p>
       </div>
     </div>

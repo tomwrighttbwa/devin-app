@@ -10,19 +10,27 @@ describe('ResultDisplay', () => {
       perHour: 45,
       recommendation: '45g carbs/hour. Mix glucose/fructose sources.',
       includeRecommendation: true,
+      scienceNotes: 'ACSM Position Stand: 30-60g/hour for 1-2 hour exercise.',
     },
     sodium: {
       total: 800,
       totalGrams: 2.0,
       perHour: 400,
       perHourGrams: 1.0,
-      recommendation: 'Moderate sodium: 400mg/hour (~1.0g salt). Use electrolyte tablets or add salt to food.',
+      recommendation: '400mg/hour sodium as starting point. Individual needs vary widely.',
       includeRecommendation: true,
+      scienceNotes: 'ACSM: Replace sodium when large sweat losses occur - highly individual.',
     },
     water: {
       total: 1200,
       perHour: 600,
-      recommendation: '600ml/hour. Monitor urine color as hydration indicator.',
+      recommendation: 'Drink to thirst, approximately 600ml/hour maximum.',
+      scienceNotes: 'ACSM guidelines: Drink to thirst during exercise.',
+    },
+    weatherAssessment: {
+      heatIndex: 20,
+      riskLevel: 'low',
+      warnings: [],
     },
   };
 
@@ -53,37 +61,52 @@ describe('ResultDisplay', () => {
 
     expect(screen.getByText(/45g carbs\/hour/)).toBeInTheDocument();
     expect(screen.getByText(/400mg\/hour/)).toBeInTheDocument();
-    expect(screen.getByText(/1.0g salt/)).toBeInTheDocument();
+    expect(screen.getByText(/1g salt/)).toBeInTheDocument();
     expect(screen.getByText(/600ml\/hour/)).toBeInTheDocument();
   });
 
-  it('should display weather adjustment when present', () => {
-    const resultWithWeather: FuelingResult = {
+  it('should display science notes', () => {
+    render(<ResultDisplay result={mockResult} />);
+
+    expect(screen.getByText(/ACSM Position Stand/)).toBeInTheDocument();
+    expect(screen.getByText(/ACSM: Replace sodium/)).toBeInTheDocument();
+    expect(screen.getByText(/ACSM guidelines: Drink to thirst/)).toBeInTheDocument();
+  });
+
+  it('should display heat risk assessment when warnings present', () => {
+    const resultWithWarnings: FuelingResult = {
       ...mockResult,
-      weatherAdjustment: {
-        factor: 1.5,
-        reason: 'high temperature (>30°C), very high humidity (>80%)',
+      weatherAssessment: {
+        heatIndex: 40,
+        riskLevel: 'extreme',
+        warnings: [
+          'EXTREME HEAT DANGER: Risk of heat stroke is high.',
+          'Reduce exercise intensity and duration.',
+        ],
       },
     };
 
-    render(<ResultDisplay result={resultWithWeather} />);
+    render(<ResultDisplay result={resultWithWarnings} />);
 
-    expect(screen.getByText(/Weather Adjustment Applied/i)).toBeInTheDocument();
-    expect(screen.getByText(/1.50x factor/i)).toBeInTheDocument();
-    expect(screen.getByText(/high temperature/i)).toBeInTheDocument();
+    expect(screen.getByText(/Heat Risk Assessment/i)).toBeInTheDocument();
+    expect(screen.getByText(/EXTREME RISK/i)).toBeInTheDocument();
+    expect(screen.getByText(/EXTREME HEAT DANGER/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reduce exercise intensity/i)).toBeInTheDocument();
   });
 
-  it('should not display weather adjustment when absent', () => {
+  it('should not display heat risk assessment when no warnings', () => {
     render(<ResultDisplay result={mockResult} />);
 
-    expect(screen.queryByText(/Weather Adjustment Applied/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Heat Risk Assessment/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/EXTREME RISK/i)).not.toBeInTheDocument();
   });
 
-  it('should display disclaimer', () => {
+  it('should display safety disclaimer', () => {
     render(<ResultDisplay result={mockResult} />);
 
-    expect(screen.getByText(/Note:/i)).toBeInTheDocument();
-    expect(screen.getByText(/individual needs vary/i)).toBeInTheDocument();
+    expect(screen.getByText(/Important Safety Notice/i)).toBeInTheDocument();
+    expect(screen.getByText(/ACSM\/ISSN sports nutrition guidelines/i)).toBeInTheDocument();
+    expect(screen.getByText(/hyponatremia risk/i)).toBeInTheDocument();
   });
 
   it('should hide recommendations when includeRecommendation is false', () => {
@@ -93,6 +116,7 @@ describe('ResultDisplay', () => {
         perHour: 0,
         recommendation: 'Water sufficient for sessions under 60 minutes.',
         includeRecommendation: false,
+        scienceNotes: 'ACSM guidelines: No carbohydrate needed for sessions under 60 minutes.',
       },
       sodium: {
         total: 0,
@@ -101,11 +125,18 @@ describe('ResultDisplay', () => {
         perHourGrams: 0,
         recommendation: 'Sodium not needed for sessions under 60 minutes.',
         includeRecommendation: false,
+        scienceNotes: 'Research shows sodium replacement unnecessary for short sessions.',
       },
       water: {
         total: 375,
         perHour: 500,
-        recommendation: 'Focus on hydration: 375ml total. Drink to thirst.',
+        recommendation: 'Drink to thirst. Pre-hydrate with 400-600ml before exercise.',
+        scienceNotes: 'ACSM guidelines: Drink to thirst during exercise.',
+      },
+      weatherAssessment: {
+        heatIndex: 20,
+        riskLevel: 'low',
+        warnings: [],
       },
     };
 
@@ -114,7 +145,23 @@ describe('ResultDisplay', () => {
     // Carbs and sodium recommendations should be hidden
     expect(screen.queryByText(/Water sufficient for sessions under 60 minutes/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Sodium not needed for sessions under 60 minutes/)).not.toBeInTheDocument();
-    // Water recommendation should still be visible
-    expect(screen.getByText(/Focus on hydration/)).toBeInTheDocument();
+    // Water recommendation should still be visible (using more specific text)
+    expect(screen.getByText(/Pre-hydrate with 400-600ml/)).toBeInTheDocument();
+  });
+
+  it('should display different risk levels appropriately', () => {
+    const highRiskResult: FuelingResult = {
+      ...mockResult,
+      weatherAssessment: {
+        heatIndex: 38,
+        riskLevel: 'high',
+        warnings: ['HIGH HEAT RISK: Heat cramps possible.'],
+      },
+    };
+
+    render(<ResultDisplay result={highRiskResult} />);
+
+    expect(screen.getByText(/HIGH RISK/i)).toBeInTheDocument();
+    expect(screen.getByText(/HIGH HEAT RISK/i)).toBeInTheDocument();
   });
 });
