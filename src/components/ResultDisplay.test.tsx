@@ -88,8 +88,7 @@ describe('ResultDisplay', () => {
 
     render(<ResultDisplay result={resultWithWarnings} />);
 
-    expect(screen.getByText(/Heat Risk Assessment/i)).toBeInTheDocument();
-    expect(screen.getByText(/EXTREME RISK/i)).toBeInTheDocument();
+    expect(screen.getByText(/Heat Risk/i)).toBeInTheDocument();
     expect(screen.getByText(/EXTREME HEAT DANGER/i)).toBeInTheDocument();
     expect(screen.getByText(/Reduce exercise intensity/i)).toBeInTheDocument();
   });
@@ -161,7 +160,6 @@ describe('ResultDisplay', () => {
 
     render(<ResultDisplay result={highRiskResult} />);
 
-    expect(screen.getByText(/HIGH RISK/i)).toBeInTheDocument();
     expect(screen.getByText(/HIGH HEAT RISK/i)).toBeInTheDocument();
   });
 });

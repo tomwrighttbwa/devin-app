@@ -22,24 +22,39 @@ const ResultDisplay = ({ result }: ResultDisplayProps) => {
     <div className="result-section">
       <h2>Your Fueling Plan</h2>
 
-      {result.weatherAssessment && result.weatherAssessment.warnings.length > 0 && (
+      {result.weatherAssessment && (
         <div
           className="weather-notice"
-          style={{ borderColor: getRiskLevelColor(result.weatherAssessment.riskLevel) }}
+          style={{
+            borderColor: getRiskLevelColor(result.weatherAssessment.riskLevel),
+            background: result.weatherAssessment.riskLevel === 'low' ? '#f0fdf4' : undefined,
+            color: result.weatherAssessment.riskLevel === 'low' ? '#065f46' : undefined
+          }}
         >
-          <strong>⚠️ Heat Risk Assessment:</strong>{' '}
-          <span style={{ color: getRiskLevelColor(result.weatherAssessment.riskLevel) }}>
-            {result.weatherAssessment.riskLevel.toUpperCase()} RISK
+          <strong>
+            {result.weatherAssessment.riskLevel === 'low' ? '✅' : '⚠️'} Heat Risk:{' '}
+          </strong>
+          <span style={{ color: getRiskLevelColor(result.weatherAssessment.riskLevel), fontWeight: '600' }}>
+            {result.weatherAssessment.riskLevel.toUpperCase()}
           </span>
-          <br />
-          <small>Heat Index: {result.weatherAssessment.heatIndex}°C</small>
-          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
-            {result.weatherAssessment.warnings.map((warning, index) => (
-              <li key={index} style={{ fontSize: '14px' }}>
-                {warning}
-              </li>
-            ))}
-          </ul>
+          {result.weatherAssessment.warnings.length > 0 && (
+            <>
+              <br />
+              <small>Heat Index: {result.weatherAssessment.heatIndex}°C</small>
+            </>
+          )}
+          {result.weatherAssessment.warnings.length > 0 && (
+            <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+              {result.weatherAssessment.warnings.map((warning, index) => (
+                <li key={index} style={{ fontSize: '14px' }}>
+                  {warning}
+                </li>
+              ))}
+            </ul>
+          )}
+          {result.weatherAssessment.warnings.length === 0 && (
+            <small>Current conditions are suitable for exercise.</small>
+          )}
         </div>
       )}
 
