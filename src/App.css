@@ -180,7 +180,44 @@ label {
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
-  border: 1px solid #fde68a;
+  border: 2px solid;
+  border-left-width: 4px;
+}
+
+.weather-notice[riskLevel='low'] {
+  border-color: #10b981;
+  background: #f0fdf4;
+  color: #065f46;
+}
+
+.weather-notice[riskLevel='moderate'] {
+  border-color: #f59e0b;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.weather-notice[riskLevel='high'] {
+  border-color: #f97316;
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.weather-notice[riskLevel='extreme'] {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.science-notes {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.science-notes small {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .result-grid {

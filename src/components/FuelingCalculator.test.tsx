@@ -76,6 +76,7 @@ describe('FuelingCalculator', () => {
         perHour: 45,
         recommendation: 'Test recommendation',
         includeRecommendation: true,
+        scienceNotes: 'Test science notes',
       },
       sodium: {
         total: 800,
@@ -84,11 +85,18 @@ describe('FuelingCalculator', () => {
         perHourGrams: 1.0,
         recommendation: 'Test recommendation',
         includeRecommendation: true,
+        scienceNotes: 'Test science notes',
       },
       water: {
         total: 1200,
         perHour: 600,
         recommendation: 'Test recommendation',
+        scienceNotes: 'Test science notes',
+      },
+      weatherAssessment: {
+        heatIndex: 20,
+        riskLevel: 'low' as const,
+        warnings: [],
       },
     };
 

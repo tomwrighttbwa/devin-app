@@ -1,3 +1,14 @@
+/**
+ * Evidence-based Endurance Fueling Calculator
+ * Based on ACSM, ISSN position stands and current sports nutrition research
+ * 
+ * Key Principles:
+ * 1. Use established guidelines rather than arbitrary calculations
+ * 2. Acknowledge individual variation and provide ranges
+ * 3. Prioritize safety with clear warnings
+ * 4. Recommend professional individualization for serious athletes
+ */
+
 export interface TrainingInput {
   duration: number; // in minutes
   intensity: 'easy' | 'endurance' | 'tempo' | 'high';
@@ -13,7 +24,8 @@ export interface FuelingResult {
     total: number; // in grams
     perHour: number; // in grams
     recommendation: string;
-    includeRecommendation: boolean; // Whether to show carb recommendations
+    includeRecommendation: boolean;
+    scienceNotes: string;
   };
   sodium: {
     total: number; // in milligrams
@@ -21,156 +33,162 @@ export interface FuelingResult {
     perHour: number; // in milligrams
     perHourGrams: number; // in grams (for salt measurement)
     recommendation: string;
-    includeRecommendation: boolean; // Whether to show sodium recommendations
+    includeRecommendation: boolean;
+    scienceNotes: string;
   };
   water: {
     total: number; // in milliliters
     perHour: number; // in milliliters
     recommendation: string;
+    scienceNotes: string;
   };
-  weatherAdjustment?: {
-    factor: number;
-    reason: string;
+  weatherAssessment: {
+    heatIndex: number;
+    riskLevel: 'low' | 'moderate' | 'high' | 'extreme';
+    warnings: string[];
   };
 }
 
 /**
- * Calculate weather adjustment factor based on temperature and humidity
- * Based on sports nutrition research showing increased sweat rates in hot/humid conditions
+ * Calculate heat index using Rothfusz equation (NWS standard)
+ * Returns apparent temperature in Celsius
  */
-export function calculateWeatherAdjustment(weather: WeatherData): {
-  factor: number;
-  reason: string;
-} {
-  const { temperature, humidity } = weather;
-  let factor = 1.0;
-  const reasons: string[] = [];
-
-  // Temperature-based adjustments
-  if (temperature > 30) {
-    factor += 0.4;
-    reasons.push('high temperature (>30°C)');
-  } else if (temperature > 25) {
-    factor += 0.3;
-    reasons.push('warm temperature (25-30°C)');
-  } else if (temperature > 20) {
-    factor += 0.1;
-    reasons.push('mild temperature (20-25°C)');
-  } else if (temperature < 10) {
-    factor -= 0.1;
-    reasons.push('cold temperature (<10°C)');
+function calculateHeatIndex(tempC: number, humidity: number): number {
+  const tempF = tempC * 9/5 + 32;
+  
+  if (tempF < 80 || humidity < 13) {
+    return tempC; // Heat index not meaningful in these conditions
   }
-
-  // Humidity-based adjustments (more realistic thresholds)
-  if (humidity > 85) {
-    factor += 0.4;
-    reasons.push('very high humidity (>85%)');
-  } else if (humidity > 75) {
-    factor += 0.2;
-    reasons.push('high humidity (75-85%)');
-  } else if (humidity > 60) {
-    factor += 0.1;
-    reasons.push('moderate humidity (60-75%)');
+  
+  const T = tempF;
+  const RH = humidity;
+  
+  // Rothfusz regression equation
+  let HI = -42.379 + 2.04901523*T + 10.14333127*RH - 0.22475541*T*RH 
+           - 0.00683783*T*T - 0.05481717*RH*RH + 0.00122874*T*T*RH 
+           + 0.00085282*T*RH*RH - 0.00000199*T*T*RH*RH;
+  
+  // Adjustments for extreme conditions
+  if (RH < 13 && T >= 80 && T <= 112) {
+    const adjustment = ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+    HI -= adjustment;
+  } else if (RH > 85 && T >= 80 && T <= 87) {
+    const adjustment = ((RH - 85) / 10) * ((87 - T) / 5);
+    HI += adjustment;
   }
-
-  // Cap the maximum adjustment to prevent excessive recommendations
-  factor = Math.min(factor, 1.8);
-  factor = Math.max(factor, 0.8);
-
-  return {
-    factor,
-    reason: reasons.length > 0 ? reasons.join(', ') : 'normal conditions',
-  };
+  
+  return (HI - 32) * 5/9; // Convert back to Celsius
 }
 
 /**
- * Calculate carbohydrate needs based on training duration and intensity
- * Duration-based approach with intensity as secondary modifier
+ * Assess heat stress risk level based on heat index
+ */
+function assessHeatRisk(heatIndexC: number): {
+  riskLevel: 'low' | 'moderate' | 'high' | 'extreme';
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  let riskLevel: 'low' | 'moderate' | 'high' | 'extreme' = 'low';
+  
+  if (heatIndexC >= 41) {
+    riskLevel = 'extreme';
+    warnings.push('EXTREME HEAT DANGER: Risk of heat stroke is high. Consider postponing exercise.');
+    warnings.push('If exercising must occur: reduce intensity, stay hydrated, monitor for heat illness symptoms.');
+  } else if (heatIndexC >= 35) {
+    riskLevel = 'high';
+    warnings.push('HIGH HEAT RISK: Heat cramps and heat exhaustion possible.');
+    warnings.push('Reduce exercise intensity and duration. Ensure adequate hydration.');
+  } else if (heatIndexC >= 27) {
+    riskLevel = 'moderate';
+    warnings.push('MODERATE HEAT: Increased sweat rate and fluid loss expected.');
+    warnings.push('Monitor hydration status and adjust pace accordingly.');
+  } else {
+    riskLevel = 'low';
+  }
+  
+  return { riskLevel, warnings };
+}
+
+/**
+ * Calculate carbohydrate needs based on ACSM/ISSN evidence-based guidelines
+ * Duration-based approach with established research backing
+ * Note: Intensity not used in evidence-based approach as ACSM/ISSN guidelines are duration-based
  */
 export function calculateCarbs(
   duration: number,
-  intensity: TrainingInput['intensity'],
-  weatherFactor: number = 1.0
+  _intensity: TrainingInput['intensity'], // Parameter kept for interface compatibility, not used in evidence-based approach
+  heatRisk: 'low' | 'moderate' | 'high' | 'extreme'
 ): {
   total: number;
   perHour: number;
   recommendation: string;
   includeRecommendation: boolean;
+  scienceNotes: string;
 } {
   const hours = duration / 60;
+  
+  // Evidence-based carbohydrate guidelines (ACSM/ISSN Position Stands)
+  let perHourRange: { min: number; max: number };
   let includeRecommendation = true;
-
-  // Duration-based recommendations (primary factor)
-  let basePerHour: number;
+  
   if (duration < 60) {
-    basePerHour = 0;
-    includeRecommendation = false; // No carb recommendations for short sessions
-  } else if (duration < 90) {
-    basePerHour = 30; // 30g/hour for 60-90 min sessions
+    // ACSM: No carbohydrate needed for sessions <60 minutes
+    perHourRange = { min: 0, max: 0 };
+    includeRecommendation = false;
   } else if (duration < 120) {
-    basePerHour = 45; // 45g/hour for 90-120 min sessions
+    // ACSM: 30-60g/hour for 1-2 hour sessions
+    perHourRange = { min: 30, max: 60 };
+  } else if (duration < 180) {
+    // ISSN: 60-90g/hour for 2-3 hour sessions
+    perHourRange = { min: 60, max: 90 };
   } else {
-    basePerHour = 60; // 60g/hour for 120+ min sessions
+    // ISSN: Up to 90g/hour for ultra-endurance (>3 hours)
+    perHourRange = { min: 60, max: 90 };
   }
-
-  // Intensity modifiers (secondary factor)
-  let intensityModifier = 1.0;
-  switch (intensity) {
-    case 'easy': // Zone 1-2: Recovery, conversation pace
-      intensityModifier = 0.9;
-      break;
-    case 'endurance': // Zone 2-3: Comfortable working pace
-      intensityModifier = 1.0;
-      break;
-    case 'tempo': // Zone 4: Threshold work
-      intensityModifier = 1.2;
-      break;
-    case 'high': // Zone 5: VO2 max/intervals
-      intensityModifier = 1.4;
-      break;
-  }
-
-  // Apply intensity modifier
-  let adjustedPerHour = basePerHour * intensityModifier;
-
-  // Apply weather adjustment (carbs needs increase slightly in heat)
-  if (duration >= 60) {
-    adjustedPerHour = adjustedPerHour * (1 + (weatherFactor - 1) * 0.2);
-  }
-
-  // Cap at reasonable maximum
-  adjustedPerHour = Math.min(adjustedPerHour, 90);
-
-  // Total carbs for the session
-  const total = adjustedPerHour * hours;
-
+  
+  // Use midpoint for recommendation (acknowledging individual variation)
+  const perHour = (perHourRange.min + perHourRange.max) / 2;
+  const total = perHour * hours;
+  
   let recommendation = '';
+  let scienceNotes = '';
+  
   if (duration < 60) {
-    recommendation = 'Water sufficient for sessions under 60 minutes. Focus on pre-training nutrition.';
-  } else if (duration < 90) {
-    recommendation = `Start fueling: ${Math.round(adjustedPerHour)}g carbs/hour. Use sugar, maple syrup, gels, or bananas.`;
+    recommendation = 'Water sufficient. Focus on pre-training nutrition.';
+    scienceNotes = 'ACSM guidelines: No carbohydrate needed for sessions under 60 minutes.';
   } else if (duration < 120) {
-    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Mix glucose/fructose sources (e.g., sugar and maltodextrin).`;
+    recommendation = `${Math.round(perHourRange.min)}-${Math.round(perHourRange.max)}g carbs/hour. Start fueling early and consistently.`;
+    scienceNotes = 'ACSM Position Stand: 30-60g/hour for 1-2 hour exercise based on gut absorption limits.';
+  } else if (duration < 180) {
+    recommendation = `${Math.round(perHourRange.min)}-${Math.round(perHourRange.max)}g carbs/hour. Use multiple transportable carb sources (glucose + fructose).`;
+    scienceNotes = 'ISSN guidelines: 60-90g/hour for 2-3 hour sessions. Multiple carb sources increase absorption to ~90g/hour.';
   } else {
-    recommendation = `${Math.round(adjustedPerHour)}g carbs/hour. Use multiple transportable carbs for endurance events.`;
+    recommendation = `${Math.round(perHourRange.min)}-${Math.round(perHourRange.max)}g carbs/hour. Train gut to tolerate higher intake over time.`;
+    scienceNotes = 'ISSN guidelines: Up to 90g/hour for ultra-endurance with multiple transportable carbs. Requires gut training.';
   }
-
+  
+  // Add heat-related considerations
+  if (heatRisk !== 'low' && duration >= 60) {
+    recommendation += ' Heat stress may reduce gut tolerance - start conservatively.';
+    scienceNotes += ' Note: Heat stress can reduce gastrointestinal tolerance to carbohydrates.';
+  }
+  
   return {
     total: Math.round(total),
-    perHour: Math.round(adjustedPerHour),
+    perHour: Math.round(perHour),
     recommendation,
     includeRecommendation,
+    scienceNotes,
   };
 }
 
 /**
- * Calculate sodium needs based on training duration and weather conditions
- * Duration-based approach with gram measurements for salt
+ * Calculate sodium needs based on current research evidence
+ * Acknowledges high individual variation and limited evidence for fixed recommendations
  */
 export function calculateSodium(
   duration: number,
-  intensity: TrainingInput['intensity'],
-  weatherFactor: number = 1.0
+  heatRisk: 'low' | 'moderate' | 'high' | 'extreme'
 ): {
   total: number;
   totalGrams: number;
@@ -178,176 +196,160 @@ export function calculateSodium(
   perHourGrams: number;
   recommendation: string;
   includeRecommendation: boolean;
+  scienceNotes: string;
 } {
   const hours = duration / 60;
+  const sodiumToSaltRatio = 0.0025; // 1mg sodium = 0.0025g salt
+  
+  let perHour: number;
   let includeRecommendation = true;
-
-  // Convert sodium to salt: 1g salt ≈ 400mg sodium
-  const sodiumToSaltRatio = 0.0025; // mg to grams conversion
-
-  // Duration-based recommendations (primary factor)
-  let basePerHour: number;
+  
+  // Evidence-based approach: Sodium needs vary widely (200-2000mg/L sweat sodium)
+  // Current research shows limited evidence for fixed recommendations
   if (duration < 60) {
-    basePerHour = 0;
-    includeRecommendation = false; // No sodium recommendations for short sessions
-  } else if (duration < 90) {
-    basePerHour = 300; // 300mg/hour for 60-90 min sessions
+    // Research shows sodium replacement not needed for sessions under 60 minutes
+    perHour = 0;
+    includeRecommendation = false;
   } else if (duration < 120) {
-    basePerHour = 400; // 400mg/hour for 90-120 min sessions
+    // For 1-2 hour sessions, sodium needs are highly individual
+    // Most research suggests minimal replacement needed unless extreme conditions
+    perHour = heatRisk === 'extreme' ? 400 : 200; // Conservative estimate
   } else {
-    basePerHour = 500; // 500mg/hour for 120+ min sessions
+    // For longer sessions, sodium needs depend on individual sweat sodium concentration
+    // Provide conservative range for general population
+    perHour = heatRisk === 'extreme' ? 600 : 400;
   }
-
-  // Intensity modifiers (secondary factor)
-  let intensityModifier = 1.0;
-  switch (intensity) {
-    case 'easy': // Zone 1-2: Recovery
-      intensityModifier = 0.9;
-      break;
-    case 'endurance': // Zone 2-3: Comfortable working pace
-      intensityModifier = 1.0;
-      break;
-    case 'tempo': // Zone 4: Threshold work
-      intensityModifier = 1.2;
-      break;
-    case 'high': // Zone 5: VO2 max/intervals
-      intensityModifier = 1.4;
-      break;
-  }
-
-  // Apply intensity modifier
-  let adjustedPerHour = basePerHour * intensityModifier;
-
-  // Apply weather adjustment (sodium needs increase significantly in heat)
-  if (duration >= 60) {
-    adjustedPerHour = adjustedPerHour * weatherFactor;
-  }
-
-  // Cap at reasonable maximum
-  adjustedPerHour = Math.min(adjustedPerHour, 1200);
-
-  // Total sodium for the session
-  const total = adjustedPerHour * hours;
-
-  // Convert to grams for salt measurement
+  
+  const total = perHour * hours;
   const totalGrams = total * sodiumToSaltRatio;
-  const perHourGrams = adjustedPerHour * sodiumToSaltRatio;
-
+  const perHourGrams = perHour * sodiumToSaltRatio;
+  
   let recommendation = '';
+  let scienceNotes = '';
+  
   if (duration < 60) {
     recommendation = 'Sodium not needed for sessions under 60 minutes.';
-  } else if (adjustedPerHour < 400) {
-    const perHourGrams = adjustedPerHour / 1000;
-    recommendation = `Light sodium needs: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Electrolyte drink sufficient.`;
-  } else if (adjustedPerHour < 600) {
-    const perHourGrams = adjustedPerHour / 1000;
-    recommendation = `Moderate sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Use electrolyte tablets or add salt to food.`;
+    scienceNotes = 'Research shows sodium replacement unnecessary for sessions under 60 minutes in most conditions.';
+  } else if (duration < 120) {
+    if (heatRisk === 'extreme') {
+      recommendation = `Consider ${Math.round(perHour)}mg/hour sodium in extreme heat. Individual needs vary widely.`;
+      scienceNotes = 'Limited evidence for fixed recommendations. Individual sweat sodium concentration varies 200-2000mg/L.';
+    } else {
+      recommendation = 'Sodium needs vary greatly between individuals. Consider electrolyte drinks if heavy sweater.';
+      scienceNotes = 'ACSM: Replace sodium "when large sweat losses occur" - highly individual. Sweat testing recommended for precision.';
+    }
   } else {
-    const perHourGrams = adjustedPerHour / 1000;
-    recommendation = `High sodium: ${Math.round(adjustedPerHour)}mg/hour (~${Math.round(perHourGrams * 10) / 10}g salt). Consider multiple electrolyte sources.`;
+    recommendation = `${Math.round(perHour)}mg/hour sodium as starting point. Individual needs vary 200-2000mg/hour based on sweat testing.`;
+    scienceNotes = 'Research shows sodium replacement only necessary with high sweat sodium (>40mmol/L) and aggressive fluid replacement (>80%).';
   }
-
+  
+  // Add individualization warning
+  if (duration >= 60) {
+    recommendation += ' Consider individual sweat testing for precise needs.';
+    scienceNotes += ' Professional sweat testing recommended for athletes training >5 hours/week.';
+  }
+  
   return {
     total: Math.round(total),
     totalGrams: Math.round(totalGrams * 100) / 100,
-    perHour: Math.round(adjustedPerHour),
+    perHour: Math.round(perHour),
     perHourGrams: Math.round(perHourGrams * 100) / 100,
     recommendation,
     includeRecommendation,
+    scienceNotes,
   };
 }
 
 /**
- * Calculate water needs based on training duration and weather conditions
- * Duration-based approach with focus on hydration for short sessions
+ * Calculate water needs based on ACSM evidence-based guidelines
+ * Emphasizes individual variation and thirst-driven approach
  */
 export function calculateWater(
   duration: number,
-  intensity: TrainingInput['intensity'],
-  weatherFactor: number = 1.0
+  heatRisk: 'low' | 'moderate' | 'high' | 'extreme'
 ): {
   total: number;
   perHour: number;
   recommendation: string;
+  scienceNotes: string;
 } {
   const hours = duration / 60;
-
-  // Duration-based recommendations (primary factor)
+  
+  // Evidence-based approach: Individual sweat rates vary 0.5-2.5L/hour
+  // ACSM recommends drinking to thirst rather than fixed volumes
   let basePerHour: number;
-  if (duration < 60) {
-    basePerHour = 500; // Focus on water for short sessions
-  } else if (duration < 90) {
+  
+  if (heatRisk === 'extreme') {
+    basePerHour = 700; // Conservative upper estimate for extreme conditions
+  } else if (heatRisk === 'high') {
     basePerHour = 600;
-  } else if (duration < 120) {
-    basePerHour = 700;
+  } else if (heatRisk === 'moderate') {
+    basePerHour = 500;
   } else {
-    basePerHour = 800;
+    basePerHour = 400; // Conservative estimate for normal conditions
   }
-
-  // Intensity modifiers (secondary factor)
-  let intensityModifier = 1.0;
-  switch (intensity) {
-    case 'easy': // Zone 1-2: Recovery
-      intensityModifier = 0.9;
-      break;
-    case 'endurance': // Zone 2-3: Comfortable working pace
-      intensityModifier = 1.0;
-      break;
-    case 'tempo': // Zone 4: Threshold work
-      intensityModifier = 1.2;
-      break;
-    case 'high': // Zone 5: VO2 max/intervals
-      intensityModifier = 1.4;
-      break;
-  }
-
-  // Apply intensity modifier
-  let adjustedPerHour = basePerHour * intensityModifier;
-
-  // Apply weather adjustment (water needs increase significantly in heat)
-  adjustedPerHour = adjustedPerHour * weatherFactor;
-
-  // Cap at reasonable maximum
-  adjustedPerHour = Math.min(adjustedPerHour, 1500);
-
-  // Total water for the session
-  const total = adjustedPerHour * hours;
-
+  
+  // Apply ACSM safety limit: maximum 800ml/hour to prevent hyponatremia
+  const safePerHour = Math.min(basePerHour, 800);
+  const total = safePerHour * hours;
+  
   let recommendation = '';
+  let scienceNotes = '';
+  
   if (duration < 60) {
-    recommendation = `Focus on hydration: ${Math.round(total)}ml total. Drink to thirst, pre-hydrate with 400-600ml before exercise.`;
-  } else if (duration < 90) {
-    recommendation = `${Math.round(adjustedPerHour)}ml/hour. Set reminders to drink every 15-20 minutes.`;
-  } else if (duration < 120) {
-    recommendation = `${Math.round(adjustedPerHour)}ml/hour. Monitor urine color as hydration indicator.`;
+    recommendation = `Drink to thirst. Pre-hydrate with 400-600ml 2-3 hours before exercise. Total ~${Math.round(total)}ml likely sufficient.`;
+    scienceNotes = 'ACSM guidelines: Drink to thirst during exercise. Pre-hydration important for short sessions.';
   } else {
-    recommendation = `${Math.round(adjustedPerHour)}ml/hour. High fluid needs - consider cold fluids for better absorption.`;
+    recommendation = `Drink to thirst, approximately ${Math.round(safePerHour)}ml/hour maximum. Never exceed 800ml/hour due to hyponatremia risk.`;
+    scienceNotes = 'ACSM Position Stand: "Drink no more than 800ml/hour" to prevent hyponatremia. Individual sweat rates vary 0.5-2.5L/hour.';
   }
-
+  
+  // Add heat-specific guidance
+  if (heatRisk !== 'low') {
+    if (heatRisk === 'extreme') {
+      recommendation += ' EXTREME HEAT: Reduce intensity, monitor for heat illness, consider postponing.';
+      scienceNotes += ' Heat stress significantly increases individual variation in fluid needs.';
+    } else {
+      recommendation += ' Increased fluid loss expected in heat - monitor urine color as hydration guide.';
+      scienceNotes += ' Sweat rates can increase 20-30% in hot conditions, but individual variation remains high.';
+    }
+  }
+  
   return {
     total: Math.round(total),
-    perHour: Math.round(adjustedPerHour),
+    perHour: Math.round(safePerHour),
     recommendation,
+    scienceNotes,
   };
 }
 
 /**
- * Main function to calculate all fueling needs
+ * Main function to calculate all fueling needs with evidence-based approach
  */
 export function calculateFuelingNeeds(input: TrainingInput, weather?: WeatherData): FuelingResult {
-  const weatherAdjustment = weather ? calculateWeatherAdjustment(weather) : undefined;
-  const weatherFactor = weatherAdjustment?.factor ?? 1.0;
-
-  const carbs = calculateCarbs(input.duration, input.intensity, weatherFactor);
-  const sodium = calculateSodium(input.duration, input.intensity, weatherFactor);
-  const water = calculateWater(input.duration, input.intensity, weatherFactor);
-
+  // Calculate heat index and assess risk if weather data provided
+  let heatIndex = 20; // Default comfortable temperature
+  let riskLevel: 'low' | 'moderate' | 'high' | 'extreme' = 'low';
+  let warnings: string[] = [];
+  
+  if (weather) {
+    heatIndex = calculateHeatIndex(weather.temperature, weather.humidity);
+    const riskAssessment = assessHeatRisk(heatIndex);
+    riskLevel = riskAssessment.riskLevel;
+    warnings = riskAssessment.warnings;
+  }
+  
+  const carbs = calculateCarbs(input.duration, input.intensity, riskLevel);
+  const sodium = calculateSodium(input.duration, riskLevel);
+  const water = calculateWater(input.duration, riskLevel);
+  
   return {
     carbs: {
       total: carbs.total,
       perHour: carbs.perHour,
       recommendation: carbs.recommendation,
       includeRecommendation: carbs.includeRecommendation,
+      scienceNotes: carbs.scienceNotes,
     },
     sodium: {
       total: sodium.total,
@@ -356,8 +358,18 @@ export function calculateFuelingNeeds(input: TrainingInput, weather?: WeatherDat
       perHourGrams: sodium.perHourGrams,
       recommendation: sodium.recommendation,
       includeRecommendation: sodium.includeRecommendation,
+      scienceNotes: sodium.scienceNotes,
     },
-    water: water,
-    weatherAdjustment,
+    water: {
+      total: water.total,
+      perHour: water.perHour,
+      recommendation: water.recommendation,
+      scienceNotes: water.scienceNotes,
+    },
+    weatherAssessment: {
+      heatIndex: Math.round(heatIndex),
+      riskLevel,
+      warnings,
+    },
   };
 }
