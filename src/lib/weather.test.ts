@@ -13,10 +13,16 @@ describe('getMockWeather', () => {
     expect(result.location).toBe('Singapore, SG');
   });
 
+  it('should show Singapore has higher humidity than London', () => {
+    const singapore = getMockWeather('Singapore');
+    const london = getMockWeather('London');
+    expect(singapore.humidity).toBeGreaterThan(london.humidity); // Singapore should have higher humidity
+  });
+
   it('should return London weather data', () => {
     const result = getMockWeather('London');
-    expect(result.temperature).toBe(15);
-    expect(result.humidity).toBe(55);
+    expect(result.temperature).toBe(18);
+    expect(result.humidity).toBe(65);
     expect(result.location).toBe('London, GB');
   });
 

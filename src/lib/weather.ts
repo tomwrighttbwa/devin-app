@@ -73,18 +73,39 @@ export async function fetchWeather(location: string, userApiKey?: string): Promi
 /**
  * Mock weather data for testing and demonstration purposes
  * This provides realistic data without requiring API keys
+ * Note: Singapore typically has much higher humidity than London
  */
 export function getMockWeather(location: string): WeatherData {
   const mockLocations: Record<string, WeatherData> = {
     singapore: {
       temperature: 32,
-      humidity: 85,
+      humidity: 85, // Singapore: Very high humidity (tropical)
       location: 'Singapore, SG',
     },
     london: {
-      temperature: 15,
-      humidity: 55,
+      temperature: 18,
+      humidity: 65, // London: Moderate humidity (temperate)
       location: 'London, GB',
+    },
+    'new york': {
+      temperature: 22,
+      humidity: 55,
+      location: 'New York, US',
+    },
+    dubai: {
+      temperature: 40,
+      humidity: 40, // Dubai: Low humidity despite high temp (desert)
+      location: 'Dubai, AE',
+    },
+    tokyo: {
+      temperature: 28,
+      humidity: 70,
+      location: 'Tokyo, JP',
+    },
+    mumbai: {
+      temperature: 35,
+      humidity: 80, // Mumbai: Very high humidity (coastal tropical)
+      location: 'Mumbai, IN',
     },
     default: {
       temperature: 25,
@@ -98,6 +119,14 @@ export function getMockWeather(location: string): WeatherData {
     return mockLocations.singapore;
   } else if (lowerLocation.includes('london')) {
     return mockLocations.london;
+  } else if (lowerLocation.includes('new york')) {
+    return mockLocations['new york'];
+  } else if (lowerLocation.includes('dubai')) {
+    return mockLocations.dubai;
+  } else if (lowerLocation.includes('tokyo')) {
+    return mockLocations.tokyo;
+  } else if (lowerLocation.includes('mumbai')) {
+    return mockLocations.mumbai;
   }
 
   return {
