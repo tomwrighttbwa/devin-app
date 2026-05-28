@@ -213,11 +213,25 @@ export function calculateSodium(
   } else if (duration < 120) {
     // For 1-2 hour sessions, sodium needs are highly individual
     // Most research suggests minimal replacement needed unless extreme conditions
-    perHour = heatRisk === 'extreme' ? 400 : 200; // Conservative estimate
+    if (heatRisk === 'extreme') {
+      perHour = 500; // Increased for extreme heat
+    } else if (heatRisk === 'high') {
+      perHour = 300; // Moderate for high heat
+    } else {
+      perHour = 200; // Minimal for moderate/low heat
+    }
   } else {
     // For longer sessions, sodium needs depend on individual sweat sodium concentration
     // Provide conservative range for general population
-    perHour = heatRisk === 'extreme' ? 600 : 400;
+    if (heatRisk === 'extreme') {
+      perHour = 700; // Higher for extreme heat
+    } else if (heatRisk === 'high') {
+      perHour = 500; // Moderate for high heat
+    } else if (heatRisk === 'moderate') {
+      perHour = 400; // Moderate for moderate heat
+    } else {
+      perHour = 300; // Conservative for normal conditions
+    }
   }
   
   const total = perHour * hours;

@@ -52,7 +52,8 @@ describe('FuelingCalculator', () => {
     await user.click(weatherToggle);
 
     expect(screen.getByLabelText(/Location/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Use demo mode/i)).toBeInTheDocument();
+    // Demo mode should not be checked by default (real API mode is default)
+    expect(screen.getByLabelText(/Use demo mode/i)).not.toBeChecked();
   });
 
   it('should not show API key input when demo mode is disabled', async () => {
@@ -120,6 +121,10 @@ describe('FuelingCalculator', () => {
 
     const weatherToggle = screen.getByLabelText(/Enable weather-based adjustments/i);
     await user.click(weatherToggle);
+
+    // Enable demo mode since real API mode is now default
+    const mockToggle = screen.getByLabelText(/Use demo mode/i);
+    await user.click(mockToggle);
 
     const locationInput = screen.getByLabelText(/Location/i);
     await user.type(locationInput, 'Singapore');

@@ -162,19 +162,39 @@ describe('calculateSodium', () => {
     expect(result.includeRecommendation).toBe(true);
   });
 
-  it('should calculate higher sodium for 60-120 minute sessions in extreme heat', () => {
+  it('should calculate sodium for 60-120 minute sessions in moderate heat', () => {
+    const result = calculateSodium(90, 'moderate');
+    expect(result.perHour).toBe(200);
+  });
+
+  it('should calculate higher sodium for 60-120 minute sessions in high heat', () => {
+    const result = calculateSodium(90, 'high');
+    expect(result.perHour).toBe(300);
+  });
+
+  it('should calculate even higher sodium for 60-120 minute sessions in extreme heat', () => {
     const result = calculateSodium(90, 'extreme');
-    expect(result.perHour).toBe(400);
+    expect(result.perHour).toBe(500);
   });
 
   it('should calculate sodium for 120+ minute sessions', () => {
     const result = calculateSodium(150, 'low');
+    expect(result.perHour).toBe(300);
+  });
+
+  it('should calculate higher sodium for 120+ minute sessions in moderate heat', () => {
+    const result = calculateSodium(150, 'moderate');
     expect(result.perHour).toBe(400);
   });
 
-  it('should calculate higher sodium for 120+ minute sessions in extreme heat', () => {
+  it('should calculate higher sodium for 120+ minute sessions in high heat', () => {
+    const result = calculateSodium(150, 'high');
+    expect(result.perHour).toBe(500);
+  });
+
+  it('should calculate even higher sodium for 120+ minute sessions in extreme heat', () => {
     const result = calculateSodium(150, 'extreme');
-    expect(result.perHour).toBe(600);
+    expect(result.perHour).toBe(700);
   });
 
   it('should provide appropriate science notes', () => {
